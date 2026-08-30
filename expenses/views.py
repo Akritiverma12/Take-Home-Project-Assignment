@@ -1,11 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import ExpenseReport, ExpenseLine ,ReportHistory
+from .models import ExpenseReport, ExpenseLine, ReportHistory
 from .forms import ExpenseReportForm, ExpenseLineForm
 
 @login_required
 def dashboard(request):
-    reports = ExpenseReport.objects.filter(owner=request.user).order_by('-created_at')
+    if request.user.role == 'APPROVER':
+        # Approvers see all submitted reports waiting for review
+        reports = ExpenseReport.objects.exclude(status='DRAFT').order_by('-updated_at')
+    else:
+        # Employees see all of their own reports
+        reports = ExpenseReport.objects.filter(owner=request.user).order_by('-created_at')
+        
     return render(request, 'expenses/dashboard.html', {'reports': reports})
 
 @login_required
@@ -21,31 +27,29 @@ def create_report(request):
         form = ExpenseReportForm()
     return render(request, 'expenses/create_report.html', {'form': form})
 
-
 @login_required
 def report_detail(request, pk):
-    # Fetch the specific report, ensuring the logged-in user actually owns it
-    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
+    if request.user.role == 'APPROVER':
+        report = get_object_or_404(ExpenseReport, pk=pk)
+    else:
+        report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
     
     if request.method == 'POST':
         form = ExpenseLineForm(request.POST)
         if form.is_valid():
             line = form.save(commit=False)
-            line.report = report  # Link the expense line to this report
+            line.report = report
             line.save()
             return redirect('report_detail', pk=report.pk)
     else:
         form = ExpenseLineForm()
         
     return render(request, 'expenses/report_detail.html', {'report': report, 'form': form})
+
 @login_required
 def submit_report(request, pk):
-    # Fetch the report
     report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
-    
-    # Only allow submitting if it is a draft AND has at least one expense
     if request.method == 'POST' and report.status == 'DRAFT' and report.lines.exists():
-        # 1. Create a history log
         ReportHistory.objects.create(
             report=report,
             changed_by=request.user,
@@ -53,9 +57,44 @@ def submit_report(request, pk):
             new_status='SUBMITTED',
             comment="Submitted for approval."
         )
-        
-        # 2. Change the status and save
         report.status = 'SUBMITTED'
         report.save()
+    return redirect('report_detail', pk=report.pk)
+
+@login_required
+def approve_report(request, pk):
+    if request.user.role != 'APPROVER':
+        return redirect('dashboard')
         
+    report = get_object_or_404(ExpenseReport, pk=pk)
+    if request.method == 'POST' and report.status == 'SUBMITTED':
+        ReportHistory.objects.create(
+            report=report,
+            changed_by=request.user,
+            old_status=report.status,
+            new_status='APPROVED',
+            comment="Report approved."
+        )
+        report.status = 'APPROVED'
+        report.save()
+    return redirect('report_detail', pk=report.pk)
+
+@login_required
+def reject_report(request, pk):
+    if request.user.role != 'APPROVER':
+        return redirect('dashboard')
+        
+    report = get_object_or_404(ExpenseReport, pk=pk)
+    if request.method == 'POST' and report.status == 'SUBMITTED':
+        reason = request.POST.get('rejection_reason', 'No reason provided.')
+        ReportHistory.objects.create(
+            report=report,
+            changed_by=request.user,
+            old_status=report.status,
+            new_status='REJECTED',
+            comment=f"Report rejected: {reason}"
+        )
+        report.status = 'REJECTED'
+        report.rejection_reason = reason
+        report.save()
     return redirect('report_detail', pk=report.pk)

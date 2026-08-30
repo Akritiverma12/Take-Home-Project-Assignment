@@ -27,4 +27,6 @@ urlpatterns = [
     path('report/new/', views.create_report, name='create_report'),
     path('report/<int:pk>/', views.report_detail, name='report_detail'),
     path('report/<int:pk>/submit/', views.submit_report, name='submit_report'),
+    path('report/<int:pk>/approve/', views.approve_report, name='approve_report'),
+    path('report/<int:pk>/reject/', views.reject_report, name='reject_report'),
 ]
