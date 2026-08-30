@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import ExpenseReport, ExpenseLine
+from .models import ExpenseReport, ExpenseLine ,ReportHistory
 from .forms import ExpenseReportForm, ExpenseLineForm
 
 @login_required
@@ -38,3 +38,24 @@ def report_detail(request, pk):
         form = ExpenseLineForm()
         
     return render(request, 'expenses/report_detail.html', {'report': report, 'form': form})
+@login_required
+def submit_report(request, pk):
+    # Fetch the report
+    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
+    
+    # Only allow submitting if it is a draft AND has at least one expense
+    if request.method == 'POST' and report.status == 'DRAFT' and report.lines.exists():
+        # 1. Create a history log
+        ReportHistory.objects.create(
+            report=report,
+            changed_by=request.user,
+            old_status=report.status,
+            new_status='SUBMITTED',
+            comment="Submitted for approval."
+        )
+        
+        # 2. Change the status and save
+        report.status = 'SUBMITTED'
+        report.save()
+        
+    return redirect('report_detail', pk=report.pk)

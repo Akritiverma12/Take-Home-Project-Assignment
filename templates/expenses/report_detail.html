@@ -8,8 +8,20 @@
     <a href="{% url 'dashboard' %}" style="color: #6c757d; text-decoration: none;">&larr; Back to Dashboard</a>
     
     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #dee2e6;">
-        <h2 style="margin-top: 0;">{{ report.title }}</h2>
-        <p><strong>Status:</strong> {{ report.status }}</p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h2 style="margin-top: 0;">{{ report.title }}</h2>
+            
+            {% if report.status == 'DRAFT' and report.lines.count > 0 %}
+            <form method="post" action="{% url 'submit_report' report.pk %}">
+                {% csrf_token %}
+                <button type="submit" style="padding: 10px 15px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
+                    Submit for Approval &rarr;
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        
+        <p><strong>Status:</strong> <span style="background: #e9ecef; padding: 3px 8px; border-radius: 12px; font-size: 14px;">{{ report.status }}</span></p>
         <p><strong>Dates:</strong> {{ report.start_date }} to {{ report.end_date }}</p>
         <p><strong>Total Amount:</strong> ${{ report.total_amount }}</p>
     </div>
