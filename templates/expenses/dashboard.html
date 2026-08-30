@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - Busy Expense</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+        <h2>Welcome, {{ user.username }}!</h2>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Logout</button>
+        </form>
+    </div>
+
+    <h3>Your Role: <strong>{{ user.role }}</strong></h3>
+
+    <p>This is your main dashboard. Soon, we will add your expense reports here!</p>
+
+</body>
+</html>

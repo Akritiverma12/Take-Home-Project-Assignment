@@ -16,12 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic.base import RedirectView
+from expenses import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # Adds Django's built-in login/logout URLs
     path('', include('django.contrib.auth.urls')), 
-    # Temporarily redirect the homepage to the login page
-    path('', RedirectView.as_view(url='/login/', permanent=False)),
+
+    path('', views.dashboard, name='dashboard'),
 ]
