@@ -15,7 +15,29 @@
 
     <h3>Your Role: <strong>{{ user.role }}</strong></h3>
 
-    <p>This is your main dashboard. Soon, we will add your expense reports here!</p>
+    <div style="margin-top: 20px;">
+        <a href="{% url 'create_report' %}" style="padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 3px;">+ Create New Report</a>
+    </div>
+
+    <h3 style="margin-top: 30px;">Your Expense Reports</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <tr style="background: #f8f9fa; text-align: left;">
+            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Title</th>
+            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Dates</th>
+            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Status</th>
+        </tr>
+        {% for report in reports %}
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ report.title }}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ report.start_date }} to {{ report.end_date }}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>{{ report.status }}</strong></td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3" style="padding: 10px; text-align: center; color: #666;">No reports found. Create one above!</td>
+        </tr>
+        {% endfor %}
+    </table>
 
 </body>
 </html>

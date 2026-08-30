@@ -24,4 +24,5 @@ urlpatterns = [
     path('', include('django.contrib.auth.urls')), 
 
     path('', views.dashboard, name='dashboard'),
+    path('report/new/', views.create_report, name='create_report'),
 ]
