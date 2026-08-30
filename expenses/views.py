@@ -6,10 +6,8 @@ from .forms import ExpenseReportForm, ExpenseLineForm
 @login_required
 def dashboard(request):
     if request.user.role == 'APPROVER':
-        # Approvers see all submitted reports waiting for review
         reports = ExpenseReport.objects.exclude(status='DRAFT').order_by('-updated_at')
     else:
-        # Employees see all of their own reports
         reports = ExpenseReport.objects.filter(owner=request.user).order_by('-created_at')
         
     return render(request, 'expenses/dashboard.html', {'reports': reports})
@@ -49,15 +47,19 @@ def report_detail(request, pk):
 @login_required
 def submit_report(request, pk):
     report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
-    if request.method == 'POST' and report.status == 'DRAFT' and report.lines.exists():
+    # Allow submitting if status is DRAFT or REJECTED
+    if request.method == 'POST' and report.status in ['DRAFT', 'REJECTED'] and report.lines.exists():
+        comment_text = "Resubmitted for approval after changes." if report.status == 'REJECTED' else "Submitted for approval."
+        
         ReportHistory.objects.create(
             report=report,
             changed_by=request.user,
             old_status=report.status,
             new_status='SUBMITTED',
-            comment="Submitted for approval."
+            comment=comment_text
         )
         report.status = 'SUBMITTED'
+        report.rejection_reason = ""  # Clear previous rejection reason
         report.save()
     return redirect('report_detail', pk=report.pk)
 

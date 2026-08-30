@@ -11,11 +11,11 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <h2 style="margin-top: 0;">{{ report.title }}</h2>
             
-            {% if user.role == 'EMPLOYEE' and report.status == 'DRAFT' and report.lines.count > 0 %}
+            {% if user.role == 'EMPLOYEE' and report.status in 'DRAFT,REJECTED' and report.lines.count > 0 %}
             <form method="post" action="{% url 'submit_report' report.pk %}">
                 {% csrf_token %}
                 <button type="submit" style="padding: 10px 15px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
-                    Submit for Approval &rarr;
+                    {% if report.status == 'REJECTED' %} Resubmit for Approval &rarr; {% else %} Submit for Approval &rarr; {% endif %}
                 </button>
             </form>
             {% endif %}
@@ -66,8 +66,8 @@
         {% endfor %}
     </table>
 
-    {% if user.role == 'EMPLOYEE' and report.status == 'DRAFT' %}
-    <div style="border: 1px solid #ccc; padding: 20px; border-radius: 5px;">
+    {% if user.role == 'EMPLOYEE' and report.status in 'DRAFT,REJECTED' %}
+    <div style="border: 1px solid #ccc; padding: 20px; border-radius: 5px; margin-bottom: 30px;">
         <h3>Add New Expense</h3>
         <form method="post" style="display: flex; flex-direction: column; gap: 10px;">
             {% csrf_token %}
@@ -76,6 +76,28 @@
         </form>
     </div>
     {% endif %}
+
+    <h3>Audit History Log</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <tr style="background: #f8f9fa; text-align: left;">
+            <th style="padding: 8px; border-bottom: 2px solid #ddd;">Date & Time</th>
+            <th style="padding: 8px; border-bottom: 2px solid #ddd;">Action By</th>
+            <th style="padding: 8px; border-bottom: 2px solid #ddd;">Status Transition</th>
+            <th style="padding: 8px; border-bottom: 2px solid #ddd;">Comment</th>
+        </tr>
+        {% for log in report.history.all %}
+        <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.created_at }}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.changed_by.username }}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.old_status }} &rarr; {{ log.new_status }}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.comment }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" style="padding: 8px; text-align: center; color: #666;">No history recorded yet.</td>
+        </tr>
+        {% endfor %}
+    </table>
 
 </body>
 </html>
