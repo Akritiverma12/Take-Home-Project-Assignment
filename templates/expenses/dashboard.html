@@ -28,7 +28,9 @@
         </tr>
         {% for report in reports %}
         <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ report.title }}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">
+    <a href="{% url 'report_detail' report.pk %}" style="color: #007bff; text-decoration: none; font-weight: bold;">{{ report.title }}</a>
+</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ report.start_date }} to {{ report.end_date }}</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>{{ report.status }}</strong></td>
         </tr>
