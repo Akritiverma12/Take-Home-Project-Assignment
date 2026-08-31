@@ -1,3 +1,5 @@
+from django.db.models import Q
+from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest, HttpResponseForbidden
@@ -7,34 +9,54 @@ from .forms import ExpenseReportForm, ExpenseLineForm
 @login_required
 def dashboard(request):
     show_archived = request.GET.get('archived') == 'true'
-    queue_filter = request.GET.get('queue', 'all')  # 'all' or 'assigned'
+    queue_filter = request.GET.get('queue', 'all')
+    search_query = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', '').strip()
     
     if request.user.role == 'APPROVER':
-        # Approvers see submitted/reviewed reports
         reports = ExpenseReport.objects.exclude(status='DRAFT')
         if queue_filter == 'assigned':
             reports = reports.filter(assigned_approvers=request.user)
     else:
-        # Employees see only their own reports
+        # Fixed: Initialize queryset properly for employees
         reports = ExpenseReport.objects.filter(owner=request.user)
         
+    # Archive filter
     if show_archived:
         reports = reports.filter(is_archived=True)
     else:
         reports = reports.filter(is_archived=False)
+
+    # Search filter (Title or Owner's Username)
+    if search_query:
+        reports = reports.filter(
+            Q(title__icontains=search_query) | 
+            Q(owner__username__icontains=search_query)
+        )
+
+    # Status filter
+    if status_filter:
+        reports = reports.filter(status=status_filter)
         
     reports = reports.order_by('-created_at')
+
+    # Pagination (5 reports per page)
+    paginator = Paginator(reports, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
-    # Pass all approvers for assignment dropdowns
     approvers = User.objects.filter(role='APPROVER')
     
     return render(request, 'expenses/dashboard.html', {
-        'reports': reports, 
+        'page_obj': page_obj,
+        'reports': page_obj.object_list,
         'show_archived': show_archived,
         'queue_filter': queue_filter,
-        'approvers': approvers
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'approvers': approvers,
+        'status_choices': ExpenseReport.Status.choices,
     })
-
 @login_required
 def create_report(request):
     if request.method == 'POST':

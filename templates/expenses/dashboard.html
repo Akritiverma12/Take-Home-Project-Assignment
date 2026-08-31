@@ -34,6 +34,24 @@
     </div>
     {% endif %}
 
+    <!-- Goal 6: Search & Filter Form -->
+    <form method="get" action="{% url 'dashboard' %}" style="margin-top: 20px; display: flex; gap: 10px; background: #f8f9fa; padding: 12px; border-radius: 5px; border: 1px solid #ddd;">
+        {% if show_archived %}<input type="hidden" name="archived" value="true">{% endif %}
+        {% if queue_filter %}<input type="hidden" name="queue" value="{{ queue_filter }}">{% endif %}
+        
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search by title or owner..." style="padding: 8px; flex-grow: 1; border: 1px solid #ccc; border-radius: 3px;">
+        
+        <select name="status" style="padding: 8px; border: 1px solid #ccc; border-radius: 3px;">
+            <option value="">All Statuses</option>
+            {% for code, label in status_choices %}
+                <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        
+        <button type="submit" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Search</button>
+        <a href="{% url 'dashboard' %}" style="padding: 8px 12px; background: #6c757d; color: white; text-decoration: none; border-radius: 3px; font-size: 13px;">Reset</a>
+    </form>
+
     <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0;">
             {% if show_archived %} Archived Reports {% else %} Active Reports {% endif %}
@@ -83,10 +101,27 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5" style="padding: 10px; text-align: center; color: #666;">No reports found in this view.</td>
+            <td colspan="5" style="padding: 10px; text-align: center; color: #666;">No reports found.</td>
         </tr>
         {% endfor %}
     </table>
+
+    <!-- Goal 6: Pagination Controls -->
+    {% if page_obj.has_other_pages %}
+    <div style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; align-items: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if show_archived %}&archived=true{% endif %}{% if queue_filter %}&queue={{ queue_filter }}{% endif %}" style="padding: 5px 10px; background: #e9ecef; color: #007bff; text-decoration: none; border-radius: 3px;">&laquo; Previous</a>
+        {% endif %}
+
+        <span style="font-size: 14px; color: #555;">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if show_archived %}&archived=true{% endif %}{% if queue_filter %}&queue={{ queue_filter }}{% endif %}" style="padding: 5px 10px; background: #e9ecef; color: #007bff; text-decoration: none; border-radius: 3px;">Next &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
 
 </body>
 </html>
