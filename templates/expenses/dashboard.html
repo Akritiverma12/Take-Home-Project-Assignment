@@ -21,9 +21,22 @@
     </div>
     {% endif %}
 
-    <h3 style="margin-top: 30px;">
-        {{% if user.role == 'APPROVER' %} All Submitted & Reviewed Reports {% else %} Your Expense Reports {% endif %}
-    </h3>
+    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">
+            {% if user.role == 'APPROVER' %}
+                {% if show_archived %} Archived Submitted & Reviewed Reports {% else %} All Submitted & Reviewed Reports {% endif %}
+            {% else %}
+                {% if show_archived %} Your Archived Expense Reports {% else %} Your Expense Reports {% endif %}
+            {% endif %}
+        </h3>
+        <div>
+            {% if show_archived %}
+                <a href="{% url 'dashboard' %}" style="color: #007bff; text-decoration: none; font-weight: bold;">View Active Reports</a>
+            {% else %}
+                <a href="{% url 'dashboard' %}?archived=true" style="color: #6c757d; text-decoration: none;">View Archived Reports &rarr;</a>
+            {% endif %}
+        </div>
+    </div>
 
     <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
         <tr style="background: #f8f9fa; text-align: left;">
@@ -31,6 +44,7 @@
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Submitted By</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Dates</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Status</th>
+            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Actions</th>
         </tr>
         {% for report in reports %}
         <tr>
@@ -40,10 +54,27 @@
             <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ report.owner.username }}</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ report.start_date }} to {{ report.end_date }}</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>{{ report.status }}</strong></td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                {% if report.owner == user %}
+                    {% if report.is_archived %}
+                    <form method="post" action="{% url 'restore_report' report.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" style="padding: 4px 8px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Restore</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'archive_report' report.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" style="padding: 4px 8px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Archive</button>
+                    </form>
+                    {% endif %}
+                {% else %}
+                    <span style="color: #aaa; font-size: 12px;">—</span>
+                {% endif %}
+            </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="4" style="padding: 10px; text-align: center; color: #666;">No reports found.</td>
+            <td colspan="5" style="padding: 10px; text-align: center; color: #666;">No reports found.</td>
         </tr>
         {% endfor %}
     </table>

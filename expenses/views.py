@@ -6,14 +6,21 @@ from .forms import ExpenseReportForm, ExpenseLineForm
 
 @login_required
 def dashboard(request):
+    show_archived = request.GET.get('archived') == 'true'
+    
     if request.user.role == 'APPROVER':
-        # Approvers see all reports submitted, approved, rejected, or paid across employees
-        reports = ExpenseReport.objects.exclude(status='DRAFT').order_by('-updated_at')
+        reports = ExpenseReport.objects.exclude(status='DRAFT')
     else:
-        # Employees see only their own reports
-        reports = ExpenseReport.objects.filter(owner=request.user).order_by('-created_at')
+        reports = ExpenseReport.objects.filter(owner=request.user)
         
-    return render(request, 'expenses/dashboard.html', {'reports': reports})
+    # Filter archived reports out of the default active view
+    if show_archived:
+        reports = reports.filter(is_archived=True)
+    else:
+        reports = reports.filter(is_archived=False)
+        
+    reports = reports.order_by('-created_at')
+    return render(request, 'expenses/dashboard.html', {'reports': reports, 'show_archived': show_archived})
 
 @login_required
 def create_report(request):
@@ -66,13 +73,27 @@ def submit_report(request, pk):
     return redirect('report_detail', pk=report.pk)
 
 @login_required
+def archive_report(request, pk):
+    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        report.is_archived = True
+        report.save()
+    return redirect('dashboard')
+
+@login_required
+def restore_report(request, pk):
+    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        report.is_archived = False
+        report.save()
+    return redirect('dashboard')
+
+@login_required
 def approve_report(request, pk):
     if request.user.role != 'APPROVER':
         return HttpResponseForbidden("Only approvers can perform this action.")
         
     report = get_object_or_404(ExpenseReport, pk=pk)
-    
-    # SERVER-SIDE SELF-APPROVAL BLOCK
     if report.owner == request.user:
         return HttpResponseForbidden("Goal 1 Rule Violation: You cannot approve your own expense report.")
         
@@ -94,8 +115,6 @@ def reject_report(request, pk):
         return HttpResponseForbidden("Only approvers can perform this action.")
         
     report = get_object_or_404(ExpenseReport, pk=pk)
-    
-    # SERVER-SIDE SELF-REJECTION BLOCK
     if report.owner == request.user:
         return HttpResponseForbidden("Goal 1 Rule Violation: You cannot decide on your own expense report.")
         
@@ -119,8 +138,6 @@ def mark_as_paid(request, pk):
         return HttpResponseForbidden("Only approvers can mark reports as paid.")
         
     report = get_object_or_404(ExpenseReport, pk=pk)
-    
-    # SERVER-SIDE BLOCK FOR SELF-OWNED REPORTS
     if report.owner == request.user:
         return HttpResponseForbidden("Goal 1 Rule Violation: You cannot mark your own report as paid.")
         
