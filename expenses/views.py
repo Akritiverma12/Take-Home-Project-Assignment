@@ -152,3 +152,30 @@ def mark_as_paid(request, pk):
         report.status = 'PAID'
         report.save()
     return redirect('report_detail', pk=report.pk)
+@login_required
+def edit_line(request, report_pk, line_pk):
+    report = get_object_or_404(ExpenseReport, pk=report_pk, owner=request.user)
+    if report.status not in ['DRAFT', 'REJECTED']:
+        return HttpResponseForbidden("Goal 3 Violation: Lines can only be edited on Draft or Rejected reports.")
+        
+    line = get_object_or_404(ExpenseLine, pk=line_pk, report=report)
+    if request.method == 'POST':
+        form = ExpenseLineForm(request.POST, instance=line)
+        if form.is_valid():
+            form.save()
+            return redirect('report_detail', pk=report.pk)
+    else:
+        form = ExpenseLineForm(instance=line)
+        
+    return render(request, 'expenses/edit_line.html', {'form': form, 'report': report, 'line': line})
+
+@login_required
+def delete_line(request, report_pk, line_pk):
+    report = get_object_or_404(ExpenseReport, pk=report_pk, owner=request.user)
+    if report.status not in ['DRAFT', 'REJECTED']:
+        return HttpResponseForbidden("Goal 3 Violation: Lines can only be deleted on Draft or Rejected reports.")
+        
+    line = get_object_or_404(ExpenseLine, pk=line_pk, report=report)
+    if request.method == 'POST':
+        line.delete()
+    return redirect('report_detail', pk=report.pk)

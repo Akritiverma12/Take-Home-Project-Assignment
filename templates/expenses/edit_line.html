@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Line Item</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 30px auto; padding: 20px;">
+    
+    <a href="{% url 'report_detail' report.pk %}" style="color: #6c757d; text-decoration: none;">&larr; Cancel and Back to Report</a>
+    
+    <h2 style="margin-top: 15px;">Edit Expense Line</h2>
+
+    <form method="post" style="display: flex; flex-direction: column; gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" style="padding: 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 120px;">Save Changes</button>
+    </form>
+
+</body>
+</html>

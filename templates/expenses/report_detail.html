@@ -53,13 +53,16 @@
         <p><strong>Total Amount:</strong> ${{ report.total_amount }}</p>
     </div>
 
-    <h3 style="margin-top: 30px;">Expense Items</h3>
+   <h3 style="margin-top: 30px;">Expense Items</h3>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
         <tr style="background: #e9ecef; text-align: left;">
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Date</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Category</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Description</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Amount</th>
+            {% if user == report.owner and report.status in 'DRAFT,REJECTED' %}
+            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Actions</th>
+            {% endif %}
         </tr>
         {% for line in report.lines.all %}
         <tr>
@@ -67,10 +70,19 @@
             <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ line.category }}</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ line.description }}</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">${{ line.amount }}</td>
+            {% if user == report.owner and report.status in 'DRAFT,REJECTED' %}
+            <td style="padding: 10px; border-bottom: 1px solid #eee; display: flex; gap: 8px;">
+                <a href="{% url 'edit_line' report.pk line.pk %}" style="padding: 4px 8px; background: #ffc107; color: black; text-decoration: none; border-radius: 3px; font-size: 12px; font-weight: bold;">Edit</a>
+                <form method="post" action="{% url 'delete_line' report.pk line.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Delete</button>
+                </form>
+            </td>
+            {% endif %}
         </tr>
         {% empty %}
         <tr>
-            <td colspan="4" style="padding: 10px; text-align: center; color: #666;">No expenses added yet.</td>
+            <td colspan="5" style="padding: 10px; text-align: center; color: #666;">No expenses added yet.</td>
         </tr>
         {% endfor %}
     </table>

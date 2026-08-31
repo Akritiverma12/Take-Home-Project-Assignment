@@ -32,4 +32,6 @@ urlpatterns = [
     path('report/<int:pk>/approve/', views.approve_report, name='approve_report'),
     path('report/<int:pk>/reject/', views.reject_report, name='reject_report'),
     path('report/<int:pk>/mark-paid/', views.mark_as_paid, name='mark_as_paid'),
+    path('report/<int:report_pk>/line/<int:line_pk>/edit/', views.edit_line, name='edit_line'),
+    path('report/<int:report_pk>/line/<int:line_pk>/delete/', views.delete_line, name='delete_line'),
 ]
