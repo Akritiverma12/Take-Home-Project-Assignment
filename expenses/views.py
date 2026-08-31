@@ -1,26 +1,39 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
-from .models import ExpenseReport, ExpenseLine, ReportHistory
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
+from .models import ExpenseReport, ExpenseLine, ReportHistory, User
 from .forms import ExpenseReportForm, ExpenseLineForm
 
 @login_required
 def dashboard(request):
     show_archived = request.GET.get('archived') == 'true'
+    queue_filter = request.GET.get('queue', 'all')  # 'all' or 'assigned'
     
     if request.user.role == 'APPROVER':
+        # Approvers see submitted/reviewed reports
         reports = ExpenseReport.objects.exclude(status='DRAFT')
+        if queue_filter == 'assigned':
+            reports = reports.filter(assigned_approvers=request.user)
     else:
+        # Employees see only their own reports
         reports = ExpenseReport.objects.filter(owner=request.user)
         
-    # Filter archived reports out of the default active view
     if show_archived:
         reports = reports.filter(is_archived=True)
     else:
         reports = reports.filter(is_archived=False)
         
     reports = reports.order_by('-created_at')
-    return render(request, 'expenses/dashboard.html', {'reports': reports, 'show_archived': show_archived})
+    
+    # Pass all approvers for assignment dropdowns
+    approvers = User.objects.filter(role='APPROVER')
+    
+    return render(request, 'expenses/dashboard.html', {
+        'reports': reports, 
+        'show_archived': show_archived,
+        'queue_filter': queue_filter,
+        'approvers': approvers
+    })
 
 @login_required
 def create_report(request):
@@ -52,14 +65,34 @@ def report_detail(request, pk):
     else:
         form = ExpenseLineForm()
         
-    return render(request, 'expenses/report_detail.html', {'report': report, 'form': form})
+    approvers = User.objects.filter(role='APPROVER')
+    return render(request, 'expenses/report_detail.html', {
+        'report': report, 
+        'form': form,
+        'approvers': approvers
+    })
+
+@login_required
+def assign_approvers(request, pk):
+    report = get_object_or_404(ExpenseReport, pk=pk)
+    if request.method == 'POST':
+        approver_ids = request.POST.getlist('approvers')
+        report.assigned_approvers.set(approver_ids)
+        report.save()
+    return redirect('report_detail', pk=report.pk)
 
 @login_required
 def submit_report(request, pk):
     report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
-    if request.method == 'POST' and report.status in ['DRAFT', 'REJECTED'] and report.lines.exists():
-        comment_text = "Resubmitted for approval after changes." if report.status == 'REJECTED' else "Submitted for approval."
-        
+    
+    # Goal 4 Lifecycle Guard
+    if report.status not in ['DRAFT', 'REJECTED']:
+        return HttpResponseBadRequest(f"Goal 4 Rule Violation: Cannot submit a report in '{report.status}' status.")
+    if not report.lines.exists():
+        return HttpResponseBadRequest("Goal 4 Rule Violation: Cannot submit a report without any expense lines.")
+
+    if request.method == 'POST':
+        comment_text = "Resubmitted for approval." if report.status == 'REJECTED' else "Submitted for approval."
         ReportHistory.objects.create(
             report=report,
             changed_by=request.user,
@@ -73,31 +106,19 @@ def submit_report(request, pk):
     return redirect('report_detail', pk=report.pk)
 
 @login_required
-def archive_report(request, pk):
-    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
-    if request.method == 'POST':
-        report.is_archived = True
-        report.save()
-    return redirect('dashboard')
-
-@login_required
-def restore_report(request, pk):
-    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
-    if request.method == 'POST':
-        report.is_archived = False
-        report.save()
-    return redirect('dashboard')
-
-@login_required
 def approve_report(request, pk):
     if request.user.role != 'APPROVER':
         return HttpResponseForbidden("Only approvers can perform this action.")
         
     report = get_object_or_404(ExpenseReport, pk=pk)
     if report.owner == request.user:
-        return HttpResponseForbidden("Goal 1 Rule Violation: You cannot approve your own expense report.")
+        return HttpResponseForbidden("Goal 1 Rule Violation: Approvers cannot approve their own reports.")
         
-    if request.method == 'POST' and report.status == 'SUBMITTED':
+    # Goal 4 Lifecycle Guard
+    if report.status != 'SUBMITTED':
+        return HttpResponseBadRequest(f"Goal 4 Rule Violation: Cannot approve a report in '{report.status}' status. Must be 'SUBMITTED'.")
+        
+    if request.method == 'POST':
         ReportHistory.objects.create(
             report=report,
             changed_by=request.user,
@@ -116,10 +137,17 @@ def reject_report(request, pk):
         
     report = get_object_or_404(ExpenseReport, pk=pk)
     if report.owner == request.user:
-        return HttpResponseForbidden("Goal 1 Rule Violation: You cannot decide on your own expense report.")
+        return HttpResponseForbidden("Goal 1 Rule Violation: Approvers cannot reject their own reports.")
         
-    if request.method == 'POST' and report.status == 'SUBMITTED':
-        reason = request.POST.get('rejection_reason', 'No reason provided.')
+    # Goal 4 Lifecycle Guard
+    if report.status != 'SUBMITTED':
+        return HttpResponseBadRequest(f"Goal 4 Rule Violation: Cannot reject a report in '{report.status}' status. Must be 'SUBMITTED'.")
+        
+    reason = request.POST.get('rejection_reason', '').strip()
+    if not reason:
+        return HttpResponseBadRequest("Goal 4 Rule Violation: A specific rejection reason is required.")
+
+    if request.method == 'POST':
         ReportHistory.objects.create(
             report=report,
             changed_by=request.user,
@@ -139,9 +167,13 @@ def mark_as_paid(request, pk):
         
     report = get_object_or_404(ExpenseReport, pk=pk)
     if report.owner == request.user:
-        return HttpResponseForbidden("Goal 1 Rule Violation: You cannot mark your own report as paid.")
+        return HttpResponseForbidden("Goal 1 Rule Violation: Approvers cannot mark their own report as paid.")
         
-    if request.method == 'POST' and report.status == 'APPROVED':
+    # Goal 4 Lifecycle Guard
+    if report.status != 'APPROVED':
+        return HttpResponseBadRequest(f"Goal 4 Rule Violation: Cannot mark report as paid from '{report.status}' status. Must be 'APPROVED'.")
+        
+    if request.method == 'POST':
         ReportHistory.objects.create(
             report=report,
             changed_by=request.user,
@@ -152,6 +184,23 @@ def mark_as_paid(request, pk):
         report.status = 'PAID'
         report.save()
     return redirect('report_detail', pk=report.pk)
+
+@login_required
+def archive_report(request, pk):
+    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        report.is_archived = True
+        report.save()
+    return redirect('dashboard')
+
+@login_required
+def restore_report(request, pk):
+    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        report.is_archived = False
+        report.save()
+    return redirect('dashboard')
+
 @login_required
 def edit_line(request, report_pk, line_pk):
     report = get_object_or_404(ExpenseReport, pk=report_pk, owner=request.user)

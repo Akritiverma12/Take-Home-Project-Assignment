@@ -3,7 +3,7 @@
 <head>
     <title>Dashboard - Busy Expense</title>
 </head>
-<body style="font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px;">
+<body style="font-family: Arial, sans-serif; max-width: 850px; margin: 20px auto; padding: 20px;">
     
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">
         <h2>Welcome, {{ user.username }}!</h2>
@@ -21,13 +21,22 @@
     </div>
     {% endif %}
 
-    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
+    {% if user.role == 'APPROVER' %}
+    <div style="margin-top: 20px; background: #e9ecef; padding: 10px; border-radius: 5px; display: flex; gap: 15px;">
+        <strong>Queue View:</strong>
+        {% if queue_filter == 'all' %}
+            <a href="{% url 'dashboard' %}?queue=all" style="text-decoration: none; font-weight: bold; color: #007bff;">Full Queue (All Submitted)</a> |
+            <a href="{% url 'dashboard' %}?queue=assigned" style="text-decoration: none; font-weight: normal; color: #007bff;">Assigned to Me</a>
+        {% else %}
+            <a href="{% url 'dashboard' %}?queue=all" style="text-decoration: none; font-weight: normal; color: #007bff;">Full Queue (All Submitted)</a> |
+            <a href="{% url 'dashboard' %}?queue=assigned" style="text-decoration: none; font-weight: bold; color: #007bff;">Assigned to Me</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0;">
-            {% if user.role == 'APPROVER' %}
-                {% if show_archived %} Archived Submitted & Reviewed Reports {% else %} All Submitted & Reviewed Reports {% endif %}
-            {% else %}
-                {% if show_archived %} Your Archived Expense Reports {% else %} Your Expense Reports {% endif %}
-            {% endif %}
+            {% if show_archived %} Archived Reports {% else %} Active Reports {% endif %}
         </h3>
         <div>
             {% if show_archived %}
@@ -41,7 +50,7 @@
     <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
         <tr style="background: #f8f9fa; text-align: left;">
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Title</th>
-            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Submitted By</th>
+            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Owner</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Dates</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Status</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Actions</th>
@@ -74,7 +83,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5" style="padding: 10px; text-align: center; color: #666;">No reports found.</td>
+            <td colspan="5" style="padding: 10px; text-align: center; color: #666;">No reports found in this view.</td>
         </tr>
         {% endfor %}
     </table>

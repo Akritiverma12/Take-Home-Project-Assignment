@@ -52,7 +52,22 @@
         <p><strong>Dates:</strong> {{ report.start_date }} to {{ report.end_date }}</p>
         <p><strong>Total Amount:</strong> ${{ report.total_amount }}</p>
     </div>
-
+    <div style="background: #eef2f5; padding: 15px; border-radius: 5px; margin-top: 15px;">
+        <h4 style="margin-top: 0;">Assigned Eligible Approvers</h4>
+        <form method="post" action="{% url 'assign_approvers' report.pk %}" style="display: flex; gap: 10px; align-items: center;">
+            {% csrf_token %}
+            <select name="approvers" multiple style="height: 60px; padding: 5px;">
+                {% for app in approvers %}
+                    <option value="{{ app.pk }}" {% if app in report.assigned_approvers.all %}selected{% endif %}>
+                        {{ app.username }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;">Update Assigned Approvers</button>
+        </form>
+        <p style="font-size: 12px; color: #666; margin-bottom: 0;">Hold Ctrl / Cmd to select multiple approvers.</p>
+    </div>
+    
    <h3 style="margin-top: 30px;">Expense Items</h3>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
         <tr style="background: #e9ecef; text-align: left;">
