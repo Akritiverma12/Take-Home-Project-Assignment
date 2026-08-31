@@ -8,7 +8,26 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from .models import ExpenseReport, ExpenseLine, ReportHistory, User,AlertDismissal
 from .forms import ExpenseReportForm, ExpenseLineForm
+from django.utils import timezone
+from datetime import timedelta
 
+def get_active_stale_alerts(approver, stale_days=3, return_days=3):
+    if approver.role != 'APPROVER':
+        return ExpenseReport.objects.none()
+
+    stale_cutoff = timezone.now() - timedelta(days=stale_days)
+    submitted_reports = ExpenseReport.objects.filter(
+        status='SUBMITTED',
+        submitted_at__lte=stale_cutoff
+    )
+
+    active_alert_ids = []
+    for report in submitted_reports:
+        dismissal = AlertDismissal.objects.filter(report=report, approver=approver).first()
+        if not dismissal or dismissal.is_expired(return_days=return_days):
+            active_alert_ids.append(report.id)
+
+    return ExpenseReport.objects.filter(id__in=active_alert_ids)
 @login_required
 def dashboard(request):
     show_archived = request.GET.get('archived') == 'true'
@@ -61,7 +80,7 @@ def dashboard(request):
         'search_query': search_query,
         'status_filter': status_filter,
         'approvers': approvers,
-        'status_choices': ExpenseReport.Status.choices,
+        'status_choices': ExpenseReport.STATUS_CHOICES,
         'alerts': alerts,
     })
 @login_required
@@ -123,7 +142,6 @@ def assign_approvers(request, pk):
 def submit_report(request, pk):
     report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
     
-    # Goal 4 Lifecycle Guard
     if report.status not in ['DRAFT', 'REJECTED']:
         return HttpResponseBadRequest(f"Goal 4 Rule Violation: Cannot submit a report in '{report.status}' status.")
     if not report.lines.exists():
@@ -139,6 +157,7 @@ def submit_report(request, pk):
             comment=comment_text
         )
         report.status = 'SUBMITTED'
+        report.submitted_at = timezone.now()  # <--- Added for Stale Alerts (Goal 10)
         report.rejection_reason = ""
         report.save()
     return redirect('report_detail', pk=report.pk)
@@ -353,3 +372,24 @@ def export_unpaid_csv(request):
         ])
 
     return response
+@login_required
+def add_timeline_comment(request, pk):
+    report = get_object_or_404(ExpenseReport, pk=pk)
+    
+    # Permission check: owner or approver
+    if report.owner != request.user and request.user.role != 'APPROVER':
+        return HttpResponseForbidden(" You cannot comment on this report.")
+
+    if request.method == 'POST':
+        comment_text = request.POST.get('comment', '').strip()
+        if comment_text:
+            ReportHistory.objects.create(
+                report=report,
+                changed_by=request.user,
+                old_status=report.status,
+                new_status=report.status,
+                comment=comment_text
+            )
+            messages.success(request, "Comment added to audit timeline.")
+
+    return redirect('report_detail', pk=pk)

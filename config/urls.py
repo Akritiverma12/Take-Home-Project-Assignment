@@ -38,4 +38,5 @@ urlpatterns = [
     path('report/<int:report_pk>/line/<int:line_pk>/delete/', views.delete_line, name='delete_line'),
     path('reports/bulk-action/', views.bulk_report_action, name='bulk_report_action'),
     path('reports/export-csv/', views.export_unpaid_csv, name='export_unpaid_csv'),
+    path('reports/<int:pk>/comment/', views.add_timeline_comment, name='add_timeline_comment'),
 ]
