@@ -1,3 +1,6 @@
+import csv
+from django.http import HttpResponse, HttpResponseForbidden
+from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
@@ -263,3 +266,90 @@ def delete_line(request, report_pk, line_pk):
     if request.method == 'POST':
         line.delete()
     return redirect('report_detail', pk=report.pk)
+@login_required
+def bulk_report_action(request):
+    if request.user.role != 'APPROVER':
+        return HttpResponseForbidden("Only approvers can perform bulk actions.")
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        report_ids = request.POST.getlist('selected_reports')
+        rejection_reason = request.POST.get('bulk_rejection_reason', 'Bulk rejected').strip()
+
+        if not report_ids:
+            messages.warning(request, "No reports were selected for bulk action.")
+            return redirect('dashboard')
+
+        reports = ExpenseReport.objects.filter(id__in=report_ids)
+
+        for report in reports:
+            # Check Rule 1: Cannot approve or reject your own report
+            if report.owner == request.user:
+                messages.error(
+                    request, 
+                    f"Refused '{report.title}': You are the owner of this report (Approvers cannot decide on their own reports)."
+                )
+                continue
+
+            # Check Rule 2: Report must be in SUBMITTED state
+            if report.status != 'SUBMITTED':
+                messages.warning(
+                    request, 
+                    f"Skipped '{report.title}': Report is currently in '{report.status}' state."
+                )
+                continue
+
+            # Apply Action
+            old_status = report.status
+            if action == 'approve':
+                report.status = 'APPROVED'
+                report.save()
+                ReportHistory.objects.create(
+                    report=report,
+                    changed_by=request.user,
+                    old_status=old_status,
+                    new_status='APPROVED',
+                    comment='Bulk approved via dashboard'
+                )
+                messages.success(request, f"Approved '{report.title}'.")
+
+            elif action == 'reject':
+                report.status = 'REJECTED'
+                report.rejection_reason = rejection_reason
+                report.save()
+                ReportHistory.objects.create(
+                    report=report,
+                    changed_by=request.user,
+                    old_status=old_status,
+                    new_status='REJECTED',
+                    comment=f"Bulk rejected: {rejection_reason}"
+                )
+                messages.success(request, f"Rejected '{report.title}'.")
+
+    return redirect('dashboard')
+
+@login_required
+def export_unpaid_csv(request):
+    if request.user.role != 'APPROVER':
+        return HttpResponseForbidden("Only approvers can export reimbursements.")
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="unpaid_reimbursements.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Report ID', 'Title', 'Owner Email/Username', 'Start Date', 'End Date', 'Total Amount ($)', 'Status'])
+
+    approved_reports = ExpenseReport.objects.filter(status='APPROVED').order_by('-created_at')
+
+    for report in approved_reports:
+        writer.writerow([
+            report.id,
+            report.title,
+            report.owner.username,
+            report.start_date,
+            report.end_date,
+            report.total_amount,
+            report.status
+        ])
+
+    return response

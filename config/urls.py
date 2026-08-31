@@ -36,4 +36,6 @@ urlpatterns = [
     path('report/<int:pk>/dismiss-alert/', views.dismiss_alert, name='dismiss_alert'),
     path('report/<int:report_pk>/line/<int:line_pk>/edit/', views.edit_line, name='edit_line'),
     path('report/<int:report_pk>/line/<int:line_pk>/delete/', views.delete_line, name='delete_line'),
+    path('reports/bulk-action/', views.bulk_report_action, name='bulk_report_action'),
+    path('reports/export-csv/', views.export_unpaid_csv, name='export_unpaid_csv'),
 ]
