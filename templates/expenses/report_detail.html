@@ -20,18 +20,27 @@
             </form>
             {% endif %}
 
-            {% if user.role == 'APPROVER' and report.status == 'SUBMITTED' %}
-            <div style="display: flex; gap: 10px;">
-                <form method="post" action="{% url 'approve_report' report.pk %}">
+            {% if user.role == 'APPROVER' and report.owner != user %}
+                {% if report.status == 'SUBMITTED' %}
+                <div style="display: flex; gap: 10px;">
+                    <form method="post" action="{% url 'approve_report' report.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" style="padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Approve</button>
+                    </form>
+                    <form method="post" action="{% url 'reject_report' report.pk %}">
+                        {% csrf_token %}
+                        <input type="text" name="rejection_reason" placeholder="Reason for rejection" required style="padding: 8px;">
+                        <button type="submit" style="padding: 10px 15px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Reject</button>
+                    </form>
+                </div>
+                {% endif %}
+
+                {% if report.status == 'APPROVED' %}
+                <form method="post" action="{% url 'mark_as_paid' report.pk %}">
                     {% csrf_token %}
-                    <button type="submit" style="padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Approve</button>
+                    <button type="submit" style="padding: 10px 15px; background: #6f42c1; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Mark as Paid $</button>
                 </form>
-                <form method="post" action="{% url 'reject_report' report.pk %}">
-                    {% csrf_token %}
-                    <input type="text" name="rejection_reason" placeholder="Reason for rejection" required style="padding: 8px;">
-                    <button type="submit" style="padding: 10px 15px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Reject</button>
-                </form>
-            </div>
+                {% endif %}
             {% endif %}
         </div>
         

@@ -1,13 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
 from .models import ExpenseReport, ExpenseLine, ReportHistory
 from .forms import ExpenseReportForm, ExpenseLineForm
 
 @login_required
 def dashboard(request):
     if request.user.role == 'APPROVER':
+        # Approvers see all reports submitted, approved, rejected, or paid across employees
         reports = ExpenseReport.objects.exclude(status='DRAFT').order_by('-updated_at')
     else:
+        # Employees see only their own reports
         reports = ExpenseReport.objects.filter(owner=request.user).order_by('-created_at')
         
     return render(request, 'expenses/dashboard.html', {'reports': reports})
@@ -47,7 +50,6 @@ def report_detail(request, pk):
 @login_required
 def submit_report(request, pk):
     report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
-    # Allow submitting if status is DRAFT or REJECTED
     if request.method == 'POST' and report.status in ['DRAFT', 'REJECTED'] and report.lines.exists():
         comment_text = "Resubmitted for approval after changes." if report.status == 'REJECTED' else "Submitted for approval."
         
@@ -59,16 +61,21 @@ def submit_report(request, pk):
             comment=comment_text
         )
         report.status = 'SUBMITTED'
-        report.rejection_reason = ""  # Clear previous rejection reason
+        report.rejection_reason = ""
         report.save()
     return redirect('report_detail', pk=report.pk)
 
 @login_required
 def approve_report(request, pk):
     if request.user.role != 'APPROVER':
-        return redirect('dashboard')
+        return HttpResponseForbidden("Only approvers can perform this action.")
         
     report = get_object_or_404(ExpenseReport, pk=pk)
+    
+    # SERVER-SIDE SELF-APPROVAL BLOCK
+    if report.owner == request.user:
+        return HttpResponseForbidden("Goal 1 Rule Violation: You cannot approve your own expense report.")
+        
     if request.method == 'POST' and report.status == 'SUBMITTED':
         ReportHistory.objects.create(
             report=report,
@@ -84,9 +91,14 @@ def approve_report(request, pk):
 @login_required
 def reject_report(request, pk):
     if request.user.role != 'APPROVER':
-        return redirect('dashboard')
+        return HttpResponseForbidden("Only approvers can perform this action.")
         
     report = get_object_or_404(ExpenseReport, pk=pk)
+    
+    # SERVER-SIDE SELF-REJECTION BLOCK
+    if report.owner == request.user:
+        return HttpResponseForbidden("Goal 1 Rule Violation: You cannot decide on your own expense report.")
+        
     if request.method == 'POST' and report.status == 'SUBMITTED':
         reason = request.POST.get('rejection_reason', 'No reason provided.')
         ReportHistory.objects.create(
@@ -98,5 +110,28 @@ def reject_report(request, pk):
         )
         report.status = 'REJECTED'
         report.rejection_reason = reason
+        report.save()
+    return redirect('report_detail', pk=report.pk)
+
+@login_required
+def mark_as_paid(request, pk):
+    if request.user.role != 'APPROVER':
+        return HttpResponseForbidden("Only approvers can mark reports as paid.")
+        
+    report = get_object_or_404(ExpenseReport, pk=pk)
+    
+    # SERVER-SIDE BLOCK FOR SELF-OWNED REPORTS
+    if report.owner == request.user:
+        return HttpResponseForbidden("Goal 1 Rule Violation: You cannot mark your own report as paid.")
+        
+    if request.method == 'POST' and report.status == 'APPROVED':
+        ReportHistory.objects.create(
+            report=report,
+            changed_by=request.user,
+            old_status=report.status,
+            new_status='PAID',
+            comment="Reimbursement marked as PAID."
+        )
+        report.status = 'PAID'
         report.save()
     return redirect('report_detail', pk=report.pk)
