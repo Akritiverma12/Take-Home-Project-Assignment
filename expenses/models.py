@@ -59,6 +59,12 @@ class ReportHistory(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
 class AlertDismissal(models.Model):
-    report = models.ForeignKey(ExpenseReport, on_delete=models.CASCADE)
-    approver = models.ForeignKey(User, on_delete=models.CASCADE)
-    dismissed_at = models.DateTimeField(auto_now=True)
+    report = models.ForeignKey(ExpenseReport, on_delete=models.CASCADE, related_name='dismissals')
+    approver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='dismissed_alerts')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('report', 'approver')
+
+    def __str__(self):
+        return f"{self.approver.username} dismissed alert for {self.report.title}"

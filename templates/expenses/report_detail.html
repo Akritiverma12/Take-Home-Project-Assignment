@@ -11,15 +11,21 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <h2 style="margin-top: 0;">{{ report.title }}</h2>
             
-            {% if user.role == 'EMPLOYEE' and report.status in 'DRAFT,REJECTED' and report.lines.count > 0 %}
-            <form method="post" action="{% url 'submit_report' report.pk %}">
-                {% csrf_token %}
-                <button type="submit" style="padding: 10px 15px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
-                    {% if report.status == 'REJECTED' %} Resubmit for Approval &rarr; {% else %} Submit for Approval &rarr; {% endif %}
-                </button>
-            </form>
+            <!-- Submit / Resubmit Action -->
+            {% if report.owner == user and report.status in 'DRAFT,REJECTED' %}
+                {% if report.lines.exists %}
+                <form method="post" action="{% url 'submit_report' report.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" style="padding: 10px 15px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
+                        {% if report.status == 'REJECTED' %} Resubmit for Approval &rarr; {% else %} Submit for Approval &rarr; {% endif %}
+                    </button>
+                </form>
+                {% else %}
+                <span style="color: #dc3545; font-size: 13px; font-weight: bold;">⚠️ Add an expense item below to enable submission.</span>
+                {% endif %}
             {% endif %}
 
+            <!-- Approver Actions -->
             {% if user.role == 'APPROVER' and report.owner != user %}
                 {% if report.status == 'SUBMITTED' %}
                 <div style="display: flex; gap: 10px;">
@@ -52,6 +58,8 @@
         <p><strong>Dates:</strong> {{ report.start_date }} to {{ report.end_date }}</p>
         <p><strong>Total Amount:</strong> ${{ report.total_amount }}</p>
     </div>
+
+    <!-- Assigned Approvers Selection -->
     <div style="background: #eef2f5; padding: 15px; border-radius: 5px; margin-top: 15px;">
         <h4 style="margin-top: 0;">Assigned Eligible Approvers</h4>
         <form method="post" action="{% url 'assign_approvers' report.pk %}" style="display: flex; gap: 10px; align-items: center;">
@@ -68,14 +76,15 @@
         <p style="font-size: 12px; color: #666; margin-bottom: 0;">Hold Ctrl / Cmd to select multiple approvers.</p>
     </div>
     
-   <h3 style="margin-top: 30px;">Expense Items</h3>
+    <!-- Expense Items Table -->
+    <h3 style="margin-top: 30px;">Expense Items</h3>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
         <tr style="background: #e9ecef; text-align: left;">
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Date</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Category</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Description</th>
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Amount</th>
-            {% if user == report.owner and report.status in 'DRAFT,REJECTED' %}
+            {% if report.owner == user and report.status in 'DRAFT,REJECTED' %}
             <th style="padding: 10px; border-bottom: 2px solid #ddd;">Actions</th>
             {% endif %}
         </tr>
@@ -85,7 +94,7 @@
             <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ line.category }}</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ line.description }}</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">${{ line.amount }}</td>
-            {% if user == report.owner and report.status in 'DRAFT,REJECTED' %}
+            {% if report.owner == user and report.status in 'DRAFT,REJECTED' %}
             <td style="padding: 10px; border-bottom: 1px solid #eee; display: flex; gap: 8px;">
                 <a href="{% url 'edit_line' report.pk line.pk %}" style="padding: 4px 8px; background: #ffc107; color: black; text-decoration: none; border-radius: 3px; font-size: 12px; font-weight: bold;">Edit</a>
                 <form method="post" action="{% url 'delete_line' report.pk line.pk %}">
@@ -97,12 +106,13 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5" style="padding: 10px; text-align: center; color: #666;">No expenses added yet.</td>
+            <td colspan="5" style="padding: 10px; text-align: center; color: #666;">No expense items added yet.</td>
         </tr>
         {% endfor %}
     </table>
 
-    {% if user.role == 'EMPLOYEE' and report.status in 'DRAFT,REJECTED' %}
+    <!-- Form to Add Line Items -->
+    {% if report.owner == user and report.status in 'DRAFT,REJECTED' %}
     <div style="border: 1px solid #ccc; padding: 20px; border-radius: 5px; margin-bottom: 30px;">
         <h3>Add New Expense</h3>
         <form method="post" style="display: flex; flex-direction: column; gap: 10px;">
@@ -113,6 +123,7 @@
     </div>
     {% endif %}
 
+    <!-- Audit History Table -->
     <h3>Audit History Log</h3>
     <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
         <tr style="background: #f8f9fa; text-align: left;">
@@ -123,7 +134,7 @@
         </tr>
         {% for log in report.history.all %}
         <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.created_at }}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.timestamp|date:"Y-m-d H:i" }}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.changed_by.username }}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.old_status }} &rarr; {{ log.new_status }}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">{{ log.comment }}</td>

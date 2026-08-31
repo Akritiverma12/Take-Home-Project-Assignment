@@ -34,7 +34,23 @@
     </div>
     {% endif %}
 
-    <!-- Goal 6: Search & Filter Form -->
+    <!-- Goal 7: Approver Pending Alerts Box -->
+    {% if user.role == 'APPROVER' and alerts %}
+    <div style="margin-top: 20px; background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 5px;">
+        <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Action Required: Pending Approval Alerts</h4>
+        {% for alert_report in alerts %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #ffeeba;">
+            <span style="color: #856404;">Report <strong><a href="{% url 'report_detail' alert_report.pk %}" style="color: #055160;">{{ alert_report.title }}</a></strong> submitted by <em>{{ alert_report.owner.username }}</em> requires review.</span>
+            <form method="post" action="{% url 'dismiss_alert' alert_report.pk %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" style="padding: 3px 8px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Dismiss Alert</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Search & Filter Form -->
     <form method="get" action="{% url 'dashboard' %}" style="margin-top: 20px; display: flex; gap: 10px; background: #f8f9fa; padding: 12px; border-radius: 5px; border: 1px solid #ddd;">
         {% if show_archived %}<input type="hidden" name="archived" value="true">{% endif %}
         {% if queue_filter %}<input type="hidden" name="queue" value="{{ queue_filter }}">{% endif %}
@@ -106,7 +122,7 @@
         {% endfor %}
     </table>
 
-    <!-- Goal 6: Pagination Controls -->
+    <!-- Pagination Controls -->
     {% if page_obj.has_other_pages %}
     <div style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; align-items: center;">
         {% if page_obj.has_previous %}

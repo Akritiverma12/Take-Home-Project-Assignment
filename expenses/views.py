@@ -3,7 +3,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest, HttpResponseForbidden
-from .models import ExpenseReport, ExpenseLine, ReportHistory, User
+from .models import ExpenseReport, ExpenseLine, ReportHistory, User,AlertDismissal
 from .forms import ExpenseReportForm, ExpenseLineForm
 
 @login_required
@@ -46,7 +46,10 @@ def dashboard(request):
     page_obj = paginator.get_page(page_number)
     
     approvers = User.objects.filter(role='APPROVER')
-    
+    alerts = []
+    if request.user.role == 'APPROVER':
+        dismissed_ids = AlertDismissal.objects.filter(approver=request.user).values_list('report_id', flat=True)
+        alerts = ExpenseReport.objects.filter(status='SUBMITTED').exclude(owner=request.user).exclude(id__in=dismissed_ids)
     return render(request, 'expenses/dashboard.html', {
         'page_obj': page_obj,
         'reports': page_obj.object_list,
@@ -56,7 +59,17 @@ def dashboard(request):
         'status_filter': status_filter,
         'approvers': approvers,
         'status_choices': ExpenseReport.Status.choices,
+        'alerts': alerts,
     })
+@login_required
+def dismiss_alert(request, pk):
+    if request.user.role != 'APPROVER':
+        return HttpResponseForbidden("Only approvers can dismiss alerts.")
+        
+    report = get_object_or_404(ExpenseReport, pk=pk)
+    if request.method == 'POST':
+        AlertDismissal.objects.get_or_create(report=report, approver=request.user)
+    return redirect('dashboard')
 @login_required
 def create_report(request):
     if request.method == 'POST':
