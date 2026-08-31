@@ -12,19 +12,23 @@ from django.utils import timezone
 from datetime import timedelta
 
 def get_active_stale_alerts(approver, stale_days=3, return_days=3):
-    if approver.role != 'APPROVER':
+    if not hasattr(approver, 'role') or approver.role != 'APPROVER':
         return ExpenseReport.objects.none()
 
     stale_cutoff = timezone.now() - timedelta(days=stale_days)
+    return_cutoff = timezone.now() - timedelta(days=return_days)
+
+    # Fetch submitted reports pending >= stale_days (excluding approver's own reports)
     submitted_reports = ExpenseReport.objects.filter(
         status='SUBMITTED',
         submitted_at__lte=stale_cutoff
-    )
+    ).exclude(owner=approver)
 
     active_alert_ids = []
     for report in submitted_reports:
         dismissal = AlertDismissal.objects.filter(report=report, approver=approver).first()
-        if not dismissal or dismissal.is_expired(return_days=return_days):
+        # Active if never dismissed or if dismissal expired (> return_days)
+        if not dismissal or (dismissal.dismissed_at and dismissal.dismissed_at <= return_cutoff):
             active_alert_ids.append(report.id)
 
     return ExpenseReport.objects.filter(id__in=active_alert_ids)
@@ -68,10 +72,10 @@ def dashboard(request):
     page_obj = paginator.get_page(page_number)
     
     approvers = User.objects.filter(role='APPROVER')
+    # Goal 10: Fetch stale alerts for approver
     alerts = []
     if request.user.role == 'APPROVER':
-        dismissed_ids = AlertDismissal.objects.filter(approver=request.user).values_list('report_id', flat=True)
-        alerts = ExpenseReport.objects.filter(status='SUBMITTED').exclude(owner=request.user).exclude(id__in=dismissed_ids)
+        alerts = get_active_stale_alerts(request.user, stale_days=3, return_days=3)
     return render(request, 'expenses/dashboard.html', {
         'page_obj': page_obj,
         'reports': page_obj.object_list,

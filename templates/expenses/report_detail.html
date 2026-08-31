@@ -17,6 +17,39 @@
     </div>
     {% endif %}
 
+    <!-- Report Action Controls -->
+    <div style="margin: 15px 0; display: flex; gap: 10px;">
+        {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
+            {% if report.lines.exists %}
+            <form method="post" action="{% url 'submit_report' report.pk %}">
+                {% csrf_token %}
+                <button type="submit" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Submit for Approval</button>
+            </form>
+            {% else %}
+            <button disabled style="padding: 8px 15px; background: #ccc; color: #666; border: none; border-radius: 3px;">Add a line item to submit</button>
+            {% endif %}
+        {% endif %}
+
+        {% if user.role == 'APPROVER' and report.owner != user and report.status == 'SUBMITTED' %}
+            <form method="post" action="{% url 'approve_report' report.pk %}">
+                {% csrf_token %}
+                <button type="submit" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">Approve</button>
+            </form>
+            <form method="post" action="{% url 'reject_report' report.pk %}" style="display: flex; gap: 5px;">
+                {% csrf_token %}
+                <input type="text" name="rejection_reason" placeholder="Rejection reason..." required style="padding: 6px; border: 1px solid #ccc; border-radius: 3px;">
+                <button type="submit" style="padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Reject</button>
+            </form>
+        {% endif %}
+
+        {% if user.role == 'APPROVER' and report.owner != user and report.status == 'APPROVED' %}
+            <form method="post" action="{% url 'mark_as_paid' report.pk %}">
+                {% csrf_token %}
+                <button type="submit" style="padding: 8px 15px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer;">Mark as Paid</button>
+            </form>
+        {% endif %}
+    </div>
+
     <hr>
 
     <h3>Line Items (Total: ${{ report.total_amount }})</h3>
@@ -26,6 +59,9 @@
             <th style="padding: 8px; border-bottom: 2px solid #ddd;">Category</th>
             <th style="padding: 8px; border-bottom: 2px solid #ddd;">Description</th>
             <th style="padding: 8px; border-bottom: 2px solid #ddd;">Amount</th>
+            {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
+            <th style="padding: 8px; border-bottom: 2px solid #ddd;">Actions</th>
+            {% endif %}
         </tr>
         {% for line in report.lines.all %}
         <tr>
@@ -33,13 +69,51 @@
             <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ line.category }}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ line.description }}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${{ line.amount }}</td>
+            {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                <a href="{% url 'edit_line' report.pk line.pk %}" style="color: #007bff; font-size: 13px;">Edit</a> |
+                <form method="post" action="{% url 'delete_line' report.pk line.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0; font-size: 13px;">Delete</button>
+                </form>
+            </td>
+            {% endif %}
         </tr>
         {% empty %}
         <tr>
-            <td colspan="4" style="padding: 8px; text-align: center; color: #777;">No line items added yet.</td>
+            <td colspan="5" style="padding: 8px; text-align: center; color: #777;">No line items added yet.</td>
         </tr>
         {% endfor %}
     </table>
+
+    <!-- Add Expense Line Item Form -->
+    {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
+        <h4 style="margin-top: 0;">+ Add Expense Line Item</h4>
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: bold;">Date:</label>
+                    {{ form.date }}
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: bold;">Category:</label>
+                    {{ form.category }}
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: bold;">Amount ($):</label>
+                    {{ form.amount }}
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: bold;">Description:</label>
+                    {{ form.description }}
+                </div>
+            </div>
+            <button type="submit" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Add Line Item</button>
+        </form>
+    </div>
+    {% endif %}
 
     <hr>
 

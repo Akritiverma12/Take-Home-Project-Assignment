@@ -7,10 +7,17 @@
     
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">
         <h2>Welcome, {{ user.username }}!</h2>
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Logout</button>
-        </form>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            {% if user.role == 'APPROVER' and alerts %}
+                <span style="background: #dc3545; color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 13px;">
+                    ⚠️ Alerts: {{ alerts|length }}
+                </span>
+            {% endif %}
+            <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Logout</button>
+            </form>
+        </div>
     </div>
 
     <h3>Your Role: <strong style="color: #007bff;">{{ user.role }}</strong></h3>
@@ -53,13 +60,15 @@
     </div>
     {% endif %}
 
-    <!-- Pending Approval Alerts -->
+    <!-- Pending Stale Approval Alerts (Goal 10) -->
     {% if user.role == 'APPROVER' and alerts %}
     <div style="margin-top: 20px; background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 5px;">
-        <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Action Required: Pending Approval Alerts</h4>
+        <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Action Required: Stale Approval Alerts (Pending > 3 Days)</h4>
         {% for alert_report in alerts %}
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #ffeeba;">
-            <span style="color: #856404;">Report <strong><a href="{% url 'report_detail' alert_report.pk %}" style="color: #055160;">{{ alert_report.title }}</a></strong> submitted by <em>{{ alert_report.owner.username }}</em> requires review.</span>
+            <span style="color: #856404;">
+                Report <strong><a href="{% url 'report_detail' alert_report.pk %}" style="color: #055160;">{{ alert_report.title }}</a></strong> submitted by <em>{{ alert_report.owner.username }}</em> on {{ alert_report.submitted_at|date:"Y-m-d H:i" }} requires immediate review.
+            </span>
             <form method="post" action="{% url 'dismiss_alert' alert_report.pk %}" style="margin: 0;">
                 {% csrf_token %}
                 <button type="submit" style="padding: 3px 8px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Dismiss Alert</button>
