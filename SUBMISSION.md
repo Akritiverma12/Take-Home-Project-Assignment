@@ -1,8 +1,10 @@
 # Project Submission Form
 
+# Project Submission Form
+
 ## 1. Project Overview & Links
-* **GitHub Repository:** `https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME` *(Replace with your URL)*
-* **Live Application:** `http://localhost:8000/` *(Or deployed URL if hosted on Render/PythonAnywhere)*
+* **GitHub Repository:** https://github.com/Akritiverma12/Take-Home-Project-Assignment
+* **Live Application:** [PENDING_DEPLOYMENT_URL]
 
 ## 2. Demo Credentials
 | Role | Username | Password |
