@@ -263,21 +263,27 @@ def restore_report(request, pk):
         report.save()
     return redirect('dashboard')
 @login_required
-def edit_line(request, report_pk, line_pk):
-    report = get_object_or_404(ExpenseReport, pk=report_pk, owner=request.user)
+def edit_line(request, report_id, line_id):
+    report = get_object_or_404(ExpenseReport, pk=report_id, owner=request.user)
+    line = get_object_or_404(ExpenseLine, pk=line_id, report=report)
+
+    # Allow edits only when the report is in DRAFT or REJECTED status
     if report.status not in ['DRAFT', 'REJECTED']:
-        return HttpResponseForbidden("Goal 3 Violation: Lines can only be edited on Draft or Rejected reports.")
-        
-    line = get_object_or_404(ExpenseLine, pk=line_pk, report=report)
+        return redirect('report_detail', pk=report.pk)
+
     if request.method == 'POST':
-        form = ExpenseLineForm(request.POST, request.FILES,instance=line)
+        form = ExpenseLineForm(request.POST, request.FILES, instance=line)  # <-- CRITICAL: instance=line
         if form.is_valid():
             form.save()
             return redirect('report_detail', pk=report.pk)
     else:
         form = ExpenseLineForm(instance=line)
-        
-    return render(request, 'expenses/edit_line.html', {'form': form, 'report': report, 'line': line})
+
+    return render(request, 'expenses/edit_line.html', {
+        'form': form,
+        'report': report,
+        'line': line
+    })
 
 @login_required
 def delete_line(request, report_pk, line_pk):

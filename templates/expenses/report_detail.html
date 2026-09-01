@@ -104,38 +104,11 @@
                     <span style="color: #28a745; font-size: 12px;">✓ Within Policy</span>
                 {% endif %}
             </td>
-           <!-- Add Expense Line Item Form -->
-    {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
-    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
-        <h4 style="margin-top: 0;">+ Add Expense Line Item</h4>
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                <div>
-                    <label style="display: block; font-size: 12px; font-weight: bold;">Date:</label>
-                    {{ form.date }}
-                </div>
-                <div>
-                    <label style="display: block; font-size: 12px; font-weight: bold;">Category:</label>
-                    {{ form.category }}
-                </div>
-                <div>
-                    <label style="display: block; font-size: 12px; font-weight: bold;">Amount ($):</label>
-                    {{ form.amount }}
-                </div>
-                <div>
-                    <label style="display: block; font-size: 12px; font-weight: bold;">Description:</label>
-                    {{ form.description }}
-                </div>
-                <div style="grid-column: span 2;">
-                    <label style="display: block; font-size: 12px; font-weight: bold;">Receipt Image/PDF:</label>
-                    {{ form.receipt }}
-                </div>
-            </div>
-            <button type="submit" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Add Line Item</button>
-        </form>
-    </div>
-    {% endif %}
+            {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                <a href="{% url 'edit_line' report.pk line.pk %}" style="color: #007bff; font-weight: bold; text-decoration: underline;">✏️ Edit</a>
+            </td>
+            {% endif %}
         </tr>
         {% empty %}
         <tr>
@@ -166,6 +139,10 @@
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: bold;">Description:</label>
                     {{ form.description }}
+                </div>
+                <div style="grid-column: span 2;">
+                    <label style="display: block; font-size: 12px; font-weight: bold;">Receipt Image/PDF:</label>
+                    {{ form.receipt }}
                 </div>
             </div>
             <button type="submit" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Add Line Item</button>

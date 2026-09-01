@@ -9,7 +9,7 @@
     
     <h2 style="margin-top: 15px;">Edit Expense Line</h2>
 
-    <form method="post" style="display: flex; flex-direction: column; gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd;">
+    <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd;">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit" style="padding: 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 120px;">Save Changes</button>
