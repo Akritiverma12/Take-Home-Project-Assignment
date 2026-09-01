@@ -32,6 +32,7 @@
 * **Timeline Commenting System:** Allows users to add discussion notes directly to the immutable audit timeline.
 * **Granular Line Item Management:** Full support for editing and deleting individual line items before report finalization.
 * **Actionable Rejection Feedback:** Prominently surfaces approver-entered rejection reasons to employees for quick revision.
+* **Key Strengths:** Strict backend security rules, comprehensive policy enforcement badges, and seamless handling of receipt uploads.
 
 ## 5. Reflection & Closing Questions
 * **Time Spent:** ~12 Hours.
