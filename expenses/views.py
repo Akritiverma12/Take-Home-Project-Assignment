@@ -117,7 +117,7 @@ def report_detail(request, pk):
         report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
     
     if request.method == 'POST':
-        form = ExpenseLineForm(request.POST)
+        form = ExpenseLineForm(request.POST,request.FILES)
         if form.is_valid():
             line = form.save(commit=False)
             line.report = report
@@ -270,7 +270,7 @@ def edit_line(request, report_pk, line_pk):
         
     line = get_object_or_404(ExpenseLine, pk=line_pk, report=report)
     if request.method == 'POST':
-        form = ExpenseLineForm(request.POST, instance=line)
+        form = ExpenseLineForm(request.POST, request.FILES,instance=line)
         if form.is_valid():
             form.save()
             return redirect('report_detail', pk=report.pk)
