@@ -19,16 +19,31 @@
 
     <!-- Report Action Controls -->
     <div style="margin: 15px 0; display: flex; gap: 10px;">
-        {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
-            {% if report.lines.exists %}
-            <form method="post" action="{% url 'submit_report' report.pk %}">
-                {% csrf_token %}
-                <button type="submit" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Submit for Approval</button>
-            </form>
-            {% else %}
-            <button disabled style="padding: 8px 15px; background: #ccc; color: #666; border: none; border-radius: 3px;">Add a line item to submit</button>
-            {% endif %}
-        {% endif %}
+       {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
+    {% if report.lines.exists %}
+    <form method="post" action="{% url 'submit_report' report.pk %}">
+        {% csrf_token %}
+        <button type="submit" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Submit for Approval</button>
+    </form>
+    {% else %}
+    <button disabled style="padding: 8px 15px; background: #ccc; color: #666; border: none; border-radius: 3px;">Add a line item to submit</button>
+    {% endif %}
+{% endif %}
+
+<!-- Archive / Restore Controls -->
+{% if report.owner == user or user.role == 'ADMIN' %}
+    {% if not report.is_archived %}
+    <form method="post" action="{% url 'archive_report' report.pk %}">
+        {% csrf_token %}
+        <button type="submit" style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;">Archive Report</button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'restore_report' report.pk %}">
+        {% csrf_token %}
+        <button type="submit" style="padding: 8px 15px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer;">Restore Report</button>
+    </form>
+    {% endif %}
+{% endif %}
 
         {% if user.role == 'APPROVER' and report.owner != user and report.status == 'SUBMITTED' %}
             <form method="post" action="{% url 'approve_report' report.pk %}">

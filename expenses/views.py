@@ -248,20 +248,20 @@ def mark_as_paid(request, pk):
 
 @login_required
 def archive_report(request, pk):
-    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
-    if request.method == 'POST':
+    report = get_object_or_404(ExpenseReport, pk=pk)
+    # Allows both Owners and Admins to archive, handling GET or POST
+    if request.user == report.owner or request.user.role == 'ADMIN':
         report.is_archived = True
         report.save()
     return redirect('dashboard')
 
 @login_required
 def restore_report(request, pk):
-    report = get_object_or_404(ExpenseReport, pk=pk, owner=request.user)
-    if request.method == 'POST':
+    report = get_object_or_404(ExpenseReport, pk=pk)
+    if request.user == report.owner or request.user.role == 'ADMIN':
         report.is_archived = False
         report.save()
     return redirect('dashboard')
-
 @login_required
 def edit_line(request, report_pk, line_pk):
     report = get_object_or_404(ExpenseReport, pk=report_pk, owner=request.user)
