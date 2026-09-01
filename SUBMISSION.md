@@ -4,7 +4,7 @@
 
 ## 1. Project Overview & Links
 * **GitHub Repository:** https://github.com/Akritiverma12/Take-Home-Project-Assignment
-* **Live Application:** [PENDING_DEPLOYMENT_URL]
+* **Live Application:** [https://AkritiVerma12.pythonanywhere.com]
 
 ## 2. Demo Credentials
 | Role | Username | Password |
