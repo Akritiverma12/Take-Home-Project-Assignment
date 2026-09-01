@@ -5,6 +5,7 @@ from datetime import timedelta
 
 class User(AbstractUser):
     ROLE_CHOICES = (
+        ('ADMIN','Admin'),
         ('EMPLOYEE', 'Employee'),
         ('APPROVER', 'Approver'),
     )
