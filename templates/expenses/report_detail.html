@@ -52,13 +52,15 @@
 
     <hr>
 
-    <h3>Line Items (Total: ${{ report.total_amount }})</h3>
+   <h3>Line Items (Total: ${{ report.total_amount }})</h3>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
         <tr style="background: #f8f9fa; text-align: left;">
             <th style="padding: 8px; border-bottom: 2px solid #ddd;">Date</th>
             <th style="padding: 8px; border-bottom: 2px solid #ddd;">Category</th>
             <th style="padding: 8px; border-bottom: 2px solid #ddd;">Description</th>
             <th style="padding: 8px; border-bottom: 2px solid #ddd;">Amount</th>
+            <th style="padding: 8px; border-bottom: 2px solid #ddd;">Receipt</th>
+            <th style="padding: 8px; border-bottom: 2px solid #ddd;">Policy Flag</th>
             {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
             <th style="padding: 8px; border-bottom: 2px solid #ddd;">Actions</th>
             {% endif %}
@@ -69,6 +71,22 @@
             <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ line.category }}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ line.description }}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${{ line.amount }}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                {% if line.receipt %}
+                    <a href="{{ line.receipt.url }}" target="_blank" style="color: #007bff;">View Receipt</a>
+                {% else %}
+                    <span style="color: #999;">None</span>
+                {% endif %}
+            </td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                {% if line.exceeds_policy %}
+                    <span style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">
+                        ⚠️ Over Limit (${{ line.policy_limit }})
+                    </span>
+                {% else %}
+                    <span style="color: #28a745; font-size: 12px;">✓ Within Policy</span>
+                {% endif %}
+            </td>
             {% if report.owner == user and report.status == 'DRAFT' or report.owner == user and report.status == 'REJECTED' %}
             <td style="padding: 8px; border-bottom: 1px solid #eee;">
                 <a href="{% url 'edit_line' report.pk line.pk %}" style="color: #007bff; font-size: 13px;">Edit</a> |
@@ -81,7 +99,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5" style="padding: 8px; text-align: center; color: #777;">No line items added yet.</td>
+            <td colspan="7" style="padding: 8px; text-align: center; color: #777;">No line items added yet.</td>
         </tr>
         {% endfor %}
     </table>

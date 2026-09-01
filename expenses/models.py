@@ -43,6 +43,14 @@ class ExpenseReport(models.Model):
         return f"{self.title} - {self.owner.username} ({self.status})"
 
 
+CATEGORY_LIMITS = {
+    'MEALS': 100.00,
+    'TRAVEL': 500.00,
+    'SUPPLIES': 250.00,
+    'LODGING': 300.00,
+    'OTHER': 150.00,
+}
+
 class ExpenseLine(models.Model):
     CATEGORY_CHOICES = (
         ('TRAVEL', 'Travel'),
@@ -57,6 +65,15 @@ class ExpenseLine(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     description = models.TextField()
+    receipt = models.FileField(upload_to='receipts/', blank=True, null=True)
+
+    @property
+    def policy_limit(self):
+        return CATEGORY_LIMITS.get(self.category.upper(), 200.00)
+
+    @property
+    def exceeds_policy(self):
+        return float(self.amount) > float(self.policy_limit)
 
     def __str__(self):
         return f"{self.category}: ${self.amount} ({self.date})"

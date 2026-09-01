@@ -13,7 +13,7 @@ class ExpenseReportForm(forms.ModelForm):
 class ExpenseLineForm(forms.ModelForm):
     class Meta:
         model = ExpenseLine
-        fields = ['date', 'amount', 'category', 'description']
+        fields = ['date', 'amount', 'category', 'description','receipt']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
         }
